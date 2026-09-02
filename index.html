@@ -4,7 +4,7 @@
 <script src="https://telegram.org/js/telegram-web-app.js"></script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,500;0,9..144,600;0,9..144,700;1,9..144,500&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <script src="https://api-maps.yandex.ru/2.1/?apikey=a1fb0501-804e-408f-b484-99bad8dd573a&lang=ru_RU"></script>
 
 <style>
@@ -35,11 +35,11 @@
     margin:0;
     background:var(--paper);
     color:var(--ink);
-    font-family:'Inter',sans-serif;
+    font-family:'Montserrat',sans-serif;
     overflow:hidden;
   }
-  h1,h2,h3,.serif{font-family:'Fraunces',serif;font-optical-sizing:auto;}
-  .mono{font-family:'Inter',sans-serif;font-weight:600;letter-spacing:.06em;}
+  h1,h2,h3,.serif{font-family:'Montserrat',sans-serif;font-weight:700;}
+  .mono{font-family:'Montserrat',sans-serif;font-weight:600;letter-spacing:.06em;}
 
   #app{
     position:fixed;
@@ -48,45 +48,55 @@
     flex-direction:column;
   }
 
-  /* ---------- Top bar ---------- */
+  /* ---------- Top bar: floating island over the map ---------- */
   #topbar{
-    padding:calc(8px + env(safe-area-inset-top)) 14px 8px;
-    background:var(--paper);
+    position:absolute;
+    top:calc(10px + env(safe-area-inset-top));
+    left:12px;
+    width:min(320px, calc(100% - 24px));
     z-index:20;
     display:flex;
     flex-direction:column;
     gap:8px;
-    border-bottom:1px solid var(--border);
+    pointer-events:none;
   }
-  #topbar-title{display:flex;align-items:baseline;gap:8px;}
+  #topbar > *{pointer-events:auto;}
+  #topbar-title{
+    display:flex;align-items:baseline;gap:6px;
+    padding:3px 10px;
+    align-self:flex-start;
+    background:rgba(255,253,248,.72);
+    backdrop-filter:blur(6px);
+    -webkit-backdrop-filter:blur(6px);
+    border-radius:999px;
+  }
   #topbar h1{
     margin:0;
-    font-size:16px;
-    font-weight:600;
+    font-size:12px;
+    font-weight:700;
     letter-spacing:.2px;
   }
   #topbar .sub{
-    font-family:'Inter',sans-serif;
+    font-family:'Montserrat',sans-serif;
     font-weight:600;
-    font-size:10px;
+    font-size:9px;
     color:var(--ink-soft);
     text-transform:uppercase;
-    letter-spacing:.08em;
+    letter-spacing:.06em;
   }
   #topbar-controls{display:flex;flex-direction:column;gap:8px;}
-  @media (min-width:700px){
-    #topbar-controls{flex-direction:row;align-items:center;}
-    #search{width:260px;flex:0 0 auto;}
-  }
 
   #search{
     width:100%;
-    padding:8px 14px;
-    border-radius:var(--radius-sm);
-    border:1px solid var(--border);
-    background:var(--card);
-    font-family:'Inter',sans-serif;
-    font-size:14px;
+    padding:9px 14px;
+    border-radius:999px;
+    border:1px solid rgba(226,213,189,.7);
+    background:rgba(255,253,248,.82);
+    backdrop-filter:blur(6px);
+    -webkit-backdrop-filter:blur(6px);
+    box-shadow:var(--shadow);
+    font-family:'Montserrat',sans-serif;
+    font-size:13.5px;
     color:var(--ink);
     outline:none;
   }
@@ -94,7 +104,7 @@
 
   #chips{
     display:flex;
-    gap:8px;
+    gap:6px;
     overflow-x:auto;
     padding-bottom:2px;
     scrollbar-width:none;
@@ -102,11 +112,14 @@
   #chips::-webkit-scrollbar{display:none;}
   .chip{
     flex:0 0 auto;
-    padding:7px 14px;
+    padding:6px 12px;
     border-radius:999px;
-    border:1px solid var(--border);
-    background:var(--card);
-    font-size:13px;
+    border:1px solid rgba(226,213,189,.7);
+    background:rgba(255,253,248,.82);
+    backdrop-filter:blur(6px);
+    -webkit-backdrop-filter:blur(6px);
+    box-shadow:var(--shadow);
+    font-size:12.5px;
     font-weight:500;
     color:var(--ink-soft);
     cursor:pointer;
@@ -160,14 +173,14 @@
   .pin.stay{background:var(--c-stay);}
 
   .popup-card{
-    font-family:'Inter',sans-serif;width:220px;
+    font-family:'Montserrat',sans-serif;width:220px;
     background:var(--card);border-radius:var(--radius-sm);box-shadow:var(--shadow);
     overflow:hidden;
   }
   .popup-card img{width:100%;height:110px;object-fit:cover;border-radius:8px 8px 0 0;margin:-1px -1px 8px;display:block;width:calc(100% + 2px);}
   .popup-card .body{padding:10px 12px 12px;}
   .popup-card h3{margin:0 0 2px;font-size:16px;}
-  .popup-card .meta{font-size:11px;color:var(--ink-soft);margin-bottom:6px;font-family:'Inter',sans-serif;font-weight:600;text-transform:uppercase;letter-spacing:.05em;}
+  .popup-card .meta{font-size:11px;color:var(--ink-soft);margin-bottom:6px;font-family:'Montserrat',sans-serif;font-weight:600;text-transform:uppercase;letter-spacing:.05em;}
   .popup-card .teaser{font-size:13px;line-height:1.4;margin:0;}
 
   /* ---------- List panel ---------- */
@@ -207,7 +220,7 @@
   .card .thumb{width:100%;height:120px;object-fit:cover;border-radius:10px;margin-bottom:10px;display:block;}
   .card .row1{display:flex;justify-content:space-between;align-items:baseline;gap:8px;}
   .card h3{margin:0;font-size:16px;font-weight:600;}
-  .card .loc{font-size:12px;color:var(--ink-soft);margin:2px 0 6px;font-family:'Inter',sans-serif;font-weight:600;text-transform:uppercase;letter-spacing:.05em;}
+  .card .loc{font-size:12px;color:var(--ink-soft);margin:2px 0 6px;font-family:'Montserrat',sans-serif;font-weight:600;text-transform:uppercase;letter-spacing:.05em;}
   .card .teaser{font-size:13.5px;line-height:1.45;margin:0;color:var(--ink);}
   .card[data-active="true"] .teaser{display:none;}
   .card .desc{font-size:13.5px;line-height:1.55;margin:0;color:var(--ink);display:none;}
@@ -219,7 +232,7 @@
     border-radius:999px;
     background:var(--paper-2);
     color:var(--ink-soft);
-    font-family:'Inter',sans-serif;
+    font-family:'Montserrat',sans-serif;
   }
   .cat-tag{
     display:inline-flex;align-items:center;gap:4px;
@@ -264,37 +277,43 @@
       border-right:1px solid var(--border);
       order:-1;
     }
+    #topbar{left:calc(380px + 12px);}
   }
 
-  .leaflet-control-attribution{font-size:10px;}
+  /* тёплый фильтр поверх дефолтных тайлов Яндекса — уводит палитру карты
+     от стоковых ярко-зелёных/жёлтых оттенков к нашей кремовой гамме.
+     Таргетируем только слой тайлов (ground-pane), не метки/попапы. */
+  #map [class*="ground-pane"]{
+    filter:saturate(.6) sepia(.18) brightness(1.04) contrast(.96) hue-rotate(-4deg);
+  }
 
   .cluster-dot{
     width:38px;height:38px;border-radius:50%;
     background:var(--ink);color:var(--paper);
     display:flex;align-items:center;justify-content:center;
-    font-family:'Inter',sans-serif;font-size:13px;font-weight:500;
+    font-family:'Montserrat',sans-serif;font-size:13px;font-weight:500;
     border:3px solid var(--card);box-shadow:0 2px 8px rgba(42,34,26,.3);
   }
 </style>
 
 <div id="app">
-  <div id="topbar">
-    <div id="topbar-title">
-      <h1>Мои места</h1>
-      <div class="sub" id="count-label">— локаций</div>
-    </div>
-    <div id="topbar-controls">
-      <input id="search" type="text" placeholder="Поиск по названию, городу, тегам…" autocomplete="off" />
-      <div id="chips"></div>
-    </div>
-  </div>
-
   <div id="main">
     <div id="panel" data-expanded="false">
       <div id="panel-handle"><div class="bar"></div></div>
       <div id="list"></div>
     </div>
     <div id="map"></div>
+
+    <div id="topbar">
+      <div id="topbar-title">
+        <h1>Мои места</h1>
+        <div class="sub" id="count-label">— локаций</div>
+      </div>
+      <div id="topbar-controls">
+        <input id="search" type="text" placeholder="Поиск по названию, городу, тегам…" autocomplete="off" />
+        <div id="chips"></div>
+      </div>
+    </div>
   </div>
 </div>
 
