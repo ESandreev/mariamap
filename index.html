@@ -1555,7 +1555,12 @@
     });
     if(loc){
       suppressAutoCollapse = true;
-      map.setLocation({ center:[loc.lng, loc.lat], zoom:Math.max(map.zoom, 16), duration:400, easing:'ease-in-out' });
+      const zoom = Math.max(map.zoom, 16);
+      /* Смещаем центр карты чуть южнее пина, чтобы сам пин оказался в нижней
+         половине экрана — иначе всплывающая карточка (растёт вверх от пина)
+         может залезть под плавающую шапку с поиском. */
+      const latOffset = 0.15 * Math.pow(0.508, zoom - 10);
+      map.setLocation({ center:[loc.lng, loc.lat + latOffset], zoom, duration:400, easing:'ease-in-out' });
       setTimeout(() => { suppressAutoCollapse = false; }, 500);
       openPopup(loc);
       if(!fromMap){
