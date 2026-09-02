@@ -142,7 +142,10 @@
   #map{
     flex:1;
     height:100%;
-    background:var(--paper-2);
+    /* Тёмно-синий фон-подложка — на случай, если какой-то тег векторной
+       карты не покрыт кастомизацией и рендерится прозрачным: должна
+       просвечивать наша тёмная подложка, а не светлый фон страницы. */
+    background:#1f4362;
   }
   .pin{
     width:28px;height:28px;
@@ -1384,15 +1387,18 @@
   const MAP_CUSTOMIZATION = [
     { tags:{ any:['address','path'] }, elements:'label', stylers:{ visibility:'off' } },
     { tags:'poi', elements:['label.icon','label.text'], stylers:{ visibility:'off' } },
-    /* "land" — базовая заливка всей суши (без неё под "landscape" остаются
-       незакрашенные белые проплешины — там, где нет леса/парка/т.п.). */
-    { tags:'land', elements:'geometry', stylers:[{ color:'#16283c' }] },
-    { tags:'landscape', elements:'geometry', stylers:[{ color:'#1a2f47' }] },
-    { tags:'water', elements:'geometry', stylers:[{ color:'#0f1e30' }] },
-    { tags:'building', elements:'geometry', stylers:[{ color:'#22394f' }] },
-    { tags:'road', elements:'geometry', stylers:[{ color:'#f4df4e' }] },
+    /* Цвета сняты пипеткой с референс-скриншота opermap.mash.ru (Воронеж) —
+       не подбирались на глаз. Правило БЕЗ "tags" — это глобальный фолбэк:
+       красит вообще всю геометрию подряд, чтобы не осталось непокрашенных
+       белых проплешин под какими-нибудь ещё не угаданными подтипами земли.
+       Более специфичные правила ниже (вода/дороги/здания) перекрывают его. */
+    { elements:'geometry', stylers:[{ color:'#1f4362' }] },
+    { tags:'water', elements:'geometry', stylers:[{ color:'#4075a8' }] },
+    { tags:'building', elements:'geometry', stylers:[{ color:'#234867' }] },
+    { tags:'road', elements:'geometry', stylers:[{ color:'#4e6188' }] },
+    { tags:{ any:['road_1','road_2','road_3'] }, elements:'geometry', stylers:[{ color:'#f3e04e' }] },
     { tags:{ any:['country','region','locality','district'] }, elements:'label.text.fill', stylers:[{ color:'#ffffff' }] },
-    { tags:{ any:['country','region','locality','district'] }, elements:'label.text.outline', stylers:[{ color:'#0f1e30', opacity:.7 }] },
+    { tags:{ any:['country','region','locality','district'] }, elements:'label.text.outline', stylers:[{ color:'#1f4362', opacity:.7 }] },
   ];
 
   const map = new YMap(document.getElementById('map'), {
