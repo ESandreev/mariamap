@@ -1,0 +1,11 @@
+Telegram Desktop/
+.DS_Store
+data/posts.json
+data/review_candidates.txt
+data/geocode_log.txt
+data/locations_raw.json
+data/locations_final.json
+data/locations_geocoded.json
+data/extra_locations_geocoded.json
+__pycache__/
+data/geocode_extra_log.txt
