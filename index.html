@@ -5,7 +5,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-<script src="https://api-maps.yandex.ru/2.1/?apikey=a1fb0501-804e-408f-b484-99bad8dd573a&lang=ru_RU"></script>
+<script src="https://api-maps.yandex.ru/v3/?apikey=a1fb0501-804e-408f-b484-99bad8dd573a&lang=ru_RU"></script>
 
 <style>
   :root{
@@ -266,32 +266,42 @@
     #topbar{left:calc(290px + 12px);}
   }
 
-  /* Обесцвечиваем тайлы Яндекса и красим полупрозрачным синим оверлеем —
-     надёжнее даёт ровный синий тон, чем hue-rotate (тот скатывался в бирюзу).
-     Таргетируем только слой тайлов (ground-pane), не метки/попапы. */
-  #map [class*="ground-pane"]{
-    filter:grayscale(1) brightness(1.12);
-  }
-  /* inner-panes — единственный контейнер тайлов/меток с реальными размерами
-     (у ground-pane они 0x0, тайлы внутри него позиционируются абсолютно);
-     оверлей вставляем сюда через ::after с z-index между ground-pane (501)
-     и places-pane (2004), чтобы красить только карту, а не метки. */
-  #map [class*="inner-panes"]::after{
-    content:"";
-    position:absolute;
-    inset:0;
-    z-index:1000;
-    background:rgba(52,120,212,.34);
-    mix-blend-mode:multiply;
-    pointer-events:none;
-  }
-
   .cluster-dot{
     width:38px;height:38px;border-radius:50%;
     background:var(--ink);color:var(--paper);
     display:flex;align-items:center;justify-content:center;
     font-family:'Montserrat',sans-serif;font-size:13px;font-weight:500;
     border:3px solid var(--card);box-shadow:0 2px 8px rgba(42,34,26,.3);
+    cursor:pointer;
+  }
+
+  /* Увеличенная зона клика по пину/кластеру: невидимый паддинг вокруг
+     видимого кружка, сам кружок при этом не растёт. */
+  .pin-hit{padding:8px;margin:-8px;cursor:pointer;}
+
+  /* Кастомный попап вместо стандартного балуна Яндекса (в v3 балуна нет) —
+     всплывает над пином, с указателем-хвостиком и крестиком закрытия. */
+  .map-popup{
+    position:relative;
+    transform:translate(-50%, calc(-100% - 16px));
+    pointer-events:auto;
+  }
+  .map-popup::after{
+    content:"";
+    position:absolute;
+    left:50%;bottom:-7px;
+    width:14px;height:14px;
+    margin-left:-7px;
+    background:var(--card);
+    transform:rotate(45deg);
+    box-shadow:2px 2px 4px rgba(42,34,26,.12);
+  }
+  .map-popup .popup-close{
+    position:absolute;top:6px;right:6px;
+    width:22px;height:22px;border-radius:50%;
+    background:rgba(42,34,26,.55);color:#fff;
+    display:flex;align-items:center;justify-content:center;
+    font-size:14px;line-height:1;cursor:pointer;z-index:1;
   }
 </style>
 
@@ -1350,54 +1360,97 @@
     }catch(e){ /* не в Telegram — используем дефолтную палитру */ }
   })();
 
-  ymaps.ready(function(){
+  (async function(){
+  await ymaps3.ready;
+  ymaps3.import.registerCdn('https://cdn.jsdelivr.net/npm/{package}', [
+    '@yandex/ymaps3-clusterer@0.0',
+    '@yandex/ymaps3-default-ui-theme@0.0',
+  ]);
+  const { YMap, YMapDefaultSchemeLayer, YMapDefaultFeaturesLayer, YMapMarker, YMapControls, YMapListener } = ymaps3;
+  const { YMapClusterer, clusterByGrid } = await ymaps3.import('@yandex/ymaps3-clusterer');
+  const { YMapZoomControl } = await ymaps3.import('@yandex/ymaps3-default-ui-theme');
 
   /* ===================== STATE ===================== */
   let activeCat = null;
   let activeId = null;
   let query = "";
+  let suppressAutoCollapse = false;
 
   /* ===================== MAP ===================== */
-  const map = new ymaps.Map('map', {
-    center:[55.76, 37.64],
-    zoom:5,
-    controls:[],
-  }, {
-    suppressMapOpenBlock:true,
-  });
-  map.container.fitToViewport();
-  map.controls.add('zoomControl', { position:{ right:10, bottom:10 } });
+  /* Своя перекраска в глубокий синий + скрытие адресных подписей (номеров
+     домов) и иконок/подписей POI. На API v3 тайлы векторные — можно управлять
+     каждым слоем отдельно, в отличие от v2.1, где был доступен только фильтр
+     поверх готовой картинки. */
+  const MAP_CUSTOMIZATION = [
+    { tags:{ any:['address','path'] }, elements:'label', stylers:{ visibility:'off' } },
+    { tags:'poi', elements:['label.icon','label.text'], stylers:{ visibility:'off' } },
+    { tags:'landscape', elements:'geometry.fill', stylers:[{ color:'#3f6fb0' }] },
+    { tags:'water', elements:'geometry.fill', stylers:[{ color:'#335f9e' }] },
+    { tags:'road', elements:'geometry.fill', stylers:[{ color:'#6f96cc' }] },
+    { tags:'building', elements:'geometry.fill', stylers:[{ color:'#5580b8' }] },
+    { tags:{ any:['country','region','locality','district'] }, elements:'label.text.fill', stylers:[{ color:'#ffffff' }] },
+    { tags:{ any:['country','region','locality','district'] }, elements:'label.text.outline', stylers:[{ color:'#2a5590', opacity:.6 }] },
+  ];
 
-  const clusterer = new ymaps.Clusterer({
-    clusterIconLayout: ymaps.templateLayoutFactory.createClass(
-      '<div class="cluster-dot">{{ properties.geoObjects.length }}</div>'
-    ),
-    clusterIconShape: { type:'Rectangle', coordinates:[[-19,-19],[19,19]] },
-    groupByCoordinates:false,
-    clusterDisableClickZoom:false,
-    clusterHideIconOnBalloonOpen:false,
+  const map = new YMap(document.getElementById('map'), {
+    location:{ center:[37.64, 55.76], zoom:5 },
   });
-  map.geoObjects.add(clusterer);
+  map.addChild(new YMapDefaultSchemeLayer({ customization: MAP_CUSTOMIZATION }));
+  map.addChild(new YMapDefaultFeaturesLayer());
+  map.addChild(new YMapControls({ position:'right' }).addChild(new YMapZoomControl({})));
+
+  /* Кастомный попап вместо стандартного балуна Яндекса (в v3 балуна нет) —
+     единственный YMapMarker, который переставляется на нужные координаты. */
+  let popupMarker = null;
+  function closePopup(){
+    if(popupMarker){ map.removeChild(popupMarker); popupMarker = null; }
+  }
+  function openPopup(loc){
+    closePopup();
+    const el = document.createElement('div');
+    el.className = 'map-popup';
+    el.innerHTML = `<div class="popup-close">&times;</div>` + popupHtml(loc);
+    el.querySelector('.popup-close').addEventListener('click', e => {
+      e.stopPropagation();
+      activeId = null;
+      [...listEl.children].forEach(c => { if(c.dataset.id) c.dataset.active = false; });
+      closePopup();
+    });
+    popupMarker = new YMapMarker({ coordinates:[loc.lng, loc.lat] }, el);
+    map.addChild(popupMarker);
+  }
 
   const markers = {};
-  const placemarks = LOCATIONS.map(loc => {
-    const IconLayout = ymaps.templateLayoutFactory.createClass(
-      `<div class="pin ${loc.cat}">${CAT_META[loc.cat].svg}</div>`
-    );
-    const placemark = new ymaps.Placemark([loc.lat, loc.lng], {
-      balloonContent: popupHtml(loc),
-      hintContent: loc.name,
-    }, {
-      iconLayout: IconLayout,
-      iconShape: { type:'Rectangle', coordinates:[[-22,-22],[22,22]] },
-      hideIconOnBalloonOpen:false,
-      balloonPanelMaxMapArea:0,
-    });
-    placemark.events.add('click', () => selectLocation(loc.id, { fromMap:true }));
-    markers[loc.id] = placemark;
-    return placemark;
+  const features = LOCATIONS.map(loc => ({
+    type:'Feature', id:loc.id,
+    geometry:{ coordinates:[loc.lng, loc.lat] },
+    properties:loc,
+  }));
+
+  const clusterer = new YMapClusterer({
+    method: clusterByGrid({ gridSize:64 }),
+    features,
+    marker: feature => {
+      const loc = feature.properties;
+      const wrap = document.createElement('div');
+      wrap.className = 'pin-hit';
+      wrap.innerHTML = `<div class="pin ${loc.cat}">${CAT_META[loc.cat].svg}</div>`;
+      wrap.addEventListener('click', () => selectLocation(loc.id, { fromMap:true }));
+      const marker = new YMapMarker({ coordinates: feature.geometry.coordinates }, wrap);
+      markers[loc.id] = marker;
+      return marker;
+    },
+    cluster: (coordinates, clusteredFeatures) => {
+      const el = document.createElement('div');
+      el.className = 'cluster-dot pin-hit';
+      el.textContent = clusteredFeatures.length;
+      el.addEventListener('click', () => {
+        map.setLocation({ center:coordinates, zoom:Math.min(map.zoom + 2, 18), duration:400, easing:'ease-in-out' });
+      });
+      return new YMapMarker({ coordinates }, el);
+    },
   });
-  clusterer.add(placemarks);
+  map.addChild(clusterer);
 
   function popupHtml(loc){
     const img = loc.photo ? `<img src="images/${loc.photo}" alt="" loading="lazy">` : "";
@@ -1501,9 +1554,10 @@
       if(c.dataset.id) c.dataset.active = (Number(c.dataset.id) === activeId);
     });
     if(loc){
-      map.setCenter([loc.lat, loc.lng], Math.max(map.getZoom(), 16), { duration:400 }).then(() => {
-        markers[id].balloon.open();
-      });
+      suppressAutoCollapse = true;
+      map.setLocation({ center:[loc.lng, loc.lat], zoom:Math.max(map.zoom, 16), duration:400, easing:'ease-in-out' });
+      setTimeout(() => { suppressAutoCollapse = false; }, 500);
+      openPopup(loc);
       if(!fromMap){
         const cardEl = listEl.querySelector(`[data-id="${id}"]`);
         if(cardEl) cardEl.scrollIntoView({ behavior:'smooth', block:'nearest' });
@@ -1535,7 +1589,11 @@
   }, { passive:true });
   panelHandle.addEventListener('touchend', () => { dragStartY = null; });
 
-  map.events.add('actionbegin', () => expandPanel(false));
+  /* Сворачиваем нижний лист, когда пользователь сам двигает карту руками —
+     но не когда карту двигает наш код (клик по карточке/пину). */
+  map.addChild(new YMapListener({
+    onUpdate: () => { if(!suppressAutoCollapse) expandPanel(false); },
+  }));
 
   /* ===================== UTIL ===================== */
   function escapeHtml(str){
@@ -1572,16 +1630,16 @@
   const boundsSource = coreLocations.length ? coreLocations : LOCATIONS;
   const boundsLats = boundsSource.map(l => l.lat);
   const boundsLngs = boundsSource.map(l => l.lng);
-  const bounds = [
-    [Math.min(...boundsLats), Math.min(...boundsLngs)],
-    [Math.max(...boundsLats), Math.max(...boundsLngs)],
-  ];
-  map.container.fitToViewport();
+  const minLat = Math.min(...boundsLats), maxLat = Math.max(...boundsLats);
+  const minLng = Math.min(...boundsLngs), maxLng = Math.max(...boundsLngs);
+  const latPad = Math.max((maxLat - minLat) * 0.15, 0.3);
+  const lngPad = Math.max((maxLng - minLng) * 0.15, 0.3);
   setTimeout(() => {
-    map.setBounds(bounds, { checkZoomRange:true, zoomMargin:40 }).then(() => {
-      if(map.getZoom() < 3 || map.getZoom() > 11) map.setZoom(map.getZoom() > 11 ? 11 : 6);
+    map.setLocation({
+      bounds: [[minLng - lngPad, minLat - latPad], [maxLng + lngPad, maxLat + latPad]],
+      duration:0,
     });
   }, 0);
 
-  }); // ymaps.ready
+  })(); // v3 map init
 </script>
