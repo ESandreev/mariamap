@@ -50,36 +50,42 @@
 
   /* ---------- Top bar ---------- */
   #topbar{
-    padding:calc(10px + env(safe-area-inset-top)) 14px 10px;
+    padding:calc(8px + env(safe-area-inset-top)) 14px 8px;
     background:var(--paper);
     z-index:20;
     display:flex;
     flex-direction:column;
-    gap:10px;
+    gap:8px;
     border-bottom:1px solid var(--border);
   }
+  #topbar-title{display:flex;align-items:baseline;gap:8px;}
   #topbar h1{
     margin:0;
-    font-size:19px;
+    font-size:16px;
     font-weight:600;
     letter-spacing:.2px;
   }
   #topbar .sub{
     font-family:'IBM Plex Mono',monospace;
-    font-size:11px;
+    font-size:10px;
     color:var(--ink-soft);
     text-transform:uppercase;
     letter-spacing:.08em;
   }
+  #topbar-controls{display:flex;flex-direction:column;gap:8px;}
+  @media (min-width:700px){
+    #topbar-controls{flex-direction:row;align-items:center;}
+    #search{width:260px;flex:0 0 auto;}
+  }
 
   #search{
     width:100%;
-    padding:11px 14px;
+    padding:8px 14px;
     border-radius:var(--radius-sm);
     border:1px solid var(--border);
     background:var(--card);
     font-family:'Archivo',sans-serif;
-    font-size:15px;
+    font-size:14px;
     color:var(--ink);
     outline:none;
   }
@@ -139,14 +145,13 @@
     background:var(--paper-2);
   }
   .pin{
-    width:30px;height:30px;
-    border-radius:50% 50% 50% 0;
-    transform:rotate(-45deg);
-    border:2px solid var(--card);
-    box-shadow:0 2px 6px rgba(0,0,0,.25);
+    width:28px;height:28px;
+    border-radius:50%;
+    border:2.5px solid var(--card);
+    box-shadow:0 2px 6px rgba(0,0,0,.3);
     display:flex;align-items:center;justify-content:center;
   }
-  .pin span{transform:rotate(45deg);font-size:14px;line-height:1;}
+  .pin span{font-size:13px;line-height:1;}
   .pin.food{background:var(--c-food);}
   .pin.cafe{background:var(--c-cafe);}
   .pin.nature{background:var(--c-nature);}
@@ -272,12 +277,14 @@
 
 <div id="app">
   <div id="topbar">
-    <div>
+    <div id="topbar-title">
       <h1>Мои места</h1>
       <div class="sub" id="count-label">— локаций</div>
     </div>
-    <input id="search" type="text" placeholder="Поиск по названию, городу, тегам…" autocomplete="off" />
-    <div id="chips"></div>
+    <div id="topbar-controls">
+      <input id="search" type="text" placeholder="Поиск по названию, городу, тегам…" autocomplete="off" />
+      <div id="chips"></div>
+    </div>
   </div>
 
   <div id="main">
@@ -1340,7 +1347,7 @@
       hintContent: loc.name,
     }, {
       iconLayout: IconLayout,
-      iconShape: { type:'Rectangle', coordinates:[[-15,-30],[15,0]] },
+      iconShape: { type:'Rectangle', coordinates:[[-14,-14],[14,14]] },
       hideIconOnBalloonOpen:false,
       balloonPanelMaxMapArea:0,
     });
