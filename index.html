@@ -1316,8 +1316,8 @@
   }, {
     suppressMapOpenBlock:true,
   });
+  map.container.fitToViewport();
   map.controls.add('zoomControl', { position:{ right:10, bottom:10 } });
-  setTimeout(() => map.container.fitToViewport(), 0);
 
   const clusterer = new ymaps.Clusterer({
     clusterIconLayout: ymaps.templateLayoutFactory.createClass(
@@ -1532,9 +1532,12 @@
     [Math.min(...boundsLats), Math.min(...boundsLngs)],
     [Math.max(...boundsLats), Math.max(...boundsLngs)],
   ];
-  map.setBounds(bounds, { checkZoomRange:true, zoomMargin:40 }).then(() => {
-    if(map.getZoom() > 11) map.setZoom(11);
-  });
+  map.container.fitToViewport();
+  setTimeout(() => {
+    map.setBounds(bounds, { checkZoomRange:true, zoomMargin:40 }).then(() => {
+      if(map.getZoom() < 3 || map.getZoom() > 11) map.setZoom(map.getZoom() > 11 ? 11 : 6);
+    });
+  }, 0);
 
   }); // ymaps.ready
 </script>
