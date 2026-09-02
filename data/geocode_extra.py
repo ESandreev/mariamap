@@ -9,19 +9,39 @@ IN_PATH = Path(__file__).parent / "extra_locations.json"
 OUT_PATH = Path(__file__).parent / "extra_locations_geocoded.json"
 
 EXTRA_CITY_QUERY = {
-    "Москва": "Москва, Россия",
+    # "Москва, Россия" геокодируется в центроид административной границы
+    # (с учётом присоединённой Новой Москвы) — это ~16 км южнее исторического
+    # центра. Поэтому для fallback используем координаты Театральной площади.
+    "Москва": None,
     "Иркутск": "Иркутск, Россия",
     "Краснодарский край": "Краснодарский край, Россия",
     "Ожигово (Московская область)": "Ожигово, Московская область, Россия",
     "под Санкт-Петербургом": "Санкт-Петербург, Россия",
     "Суздаль": CITY_QUERY["Суздаль"],
 }
+MOSCOW_CENTER = (55.7597, 37.6188)  # Театральная площадь
+
+# Точные адреса — там, где геокодинг по одному названию не находит место
+# или находит что-то другое (сеть/тёзка).
+ADDRESS_OVERRIDES = {
+    "Ikura Izakaya Nikkei": "Рождественский бульвар, 1, Москва, Россия",
+    "Fullmoon": "Малая Никитская улица, 16/5, Москва, Россия",
+    "The Greeks": "Неглинная улица, 15, Москва, Россия",
+}
+
+# Координаты, перепроверенные вручную через Яндекс.Геокодер — Nominatim по
+# этому адресу путал номер дома (нашёл 21с1 вместо 1, ошибка ~450м).
+LATLNG_OVERRIDES = {
+    "Ikura Izakaya Nikkei": (55.766749, 37.624211),
+}
 
 
 def main():
     items = json.load(open(IN_PATH, encoding="utf-8"))
-    city_coords = {}
+    city_coords = {"Москва": MOSCOW_CENTER}
     for city, q in EXTRA_CITY_QUERY.items():
+        if q is None:
+            continue
         res = geocode(q)
         city_coords[city] = res
         print(f"город {city}: {res}")
@@ -29,7 +49,10 @@ def main():
 
     for i, item in enumerate(items):
         city = item["city"]
-        q = f"{item['name']}, {EXTRA_CITY_QUERY.get(city, city + ', Россия')}"
+        if item["name"] in ADDRESS_OVERRIDES:
+            q = ADDRESS_OVERRIDES[item["name"]]
+        else:
+            q = f"{item['name']}, {EXTRA_CITY_QUERY.get(city) or (city + ', Россия')}"
         res = geocode(q)
         if res:
             item["lat"], item["lng"] = res

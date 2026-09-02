@@ -9,3 +9,4 @@ data/locations_geocoded.json
 data/extra_locations_geocoded.json
 __pycache__/
 data/geocode_extra_log.txt
+data/apply_address_fixes_log.txt
