@@ -5,6 +5,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20,500,1,0&display=swap" rel="stylesheet">
 <script src="https://api-maps.yandex.ru/2.1/?apikey=a1fb0501-804e-408f-b484-99bad8dd573a&lang=ru_RU"></script>
 
 <style>
@@ -165,7 +166,11 @@
     box-shadow:0 2px 6px rgba(0,0,0,.3);
     display:flex;align-items:center;justify-content:center;
   }
-  .pin span{font-size:13px;line-height:1;}
+  .pin span{
+    font-family:'Material Symbols Outlined';
+    font-size:16px;line-height:1;color:#fff;
+    -webkit-font-smoothing:antialiased;
+  }
   .pin.food{background:var(--c-food);}
   .pin.cafe{background:var(--c-cafe);}
   .pin.nature{background:var(--c-nature);}
@@ -1304,11 +1309,11 @@
   ];
 
   const CAT_META = {
-    food:   { label:"Рестораны", emoji:"🍽" },
-    cafe:   { label:"Кафе",      emoji:"☕" },
-    nature: { label:"Природа",   emoji:"🌿" },
-    city:   { label:"Город",     emoji:"🏙" },
-    stay:   { label:"Отели",     emoji:"🛏" },
+    food:   { label:"Рестораны", icon:"restaurant" },
+    cafe:   { label:"Кафе",      icon:"local_cafe" },
+    nature: { label:"Природа",   icon:"park" },
+    city:   { label:"Город",     icon:"location_city" },
+    stay:   { label:"Отели",     icon:"hotel" },
   };
 
   /* ===================== TELEGRAM THEME ===================== */
@@ -1361,7 +1366,7 @@
   const markers = {};
   const placemarks = LOCATIONS.map(loc => {
     const IconLayout = ymaps.templateLayoutFactory.createClass(
-      `<div class="pin ${loc.cat}"><span>${CAT_META[loc.cat].emoji}</span></div>`
+      `<div class="pin ${loc.cat}"><span class="material-symbols-outlined">${CAT_META[loc.cat].icon}</span></div>`
     );
     const placemark = new ymaps.Placemark([loc.lat, loc.lng], {
       balloonContent: popupHtml(loc),
