@@ -5,7 +5,6 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20,500,1,0&display=swap" rel="stylesheet">
 <script src="https://api-maps.yandex.ru/2.1/?apikey=a1fb0501-804e-408f-b484-99bad8dd573a&lang=ru_RU"></script>
 
 <style>
@@ -19,11 +18,11 @@
     --accent:#c1502c;
     --accent-ink:#fff8f0;
 
-    --c-food:#c1502c;
-    --c-cafe:#b3862a;
-    --c-nature:#4c7a54;
-    --c-city:#3f5b78;
-    --c-stay:#7a5c94;
+    --c-food:#FF5A4F;
+    --c-cafe:#FFB21A;
+    --c-nature:#7CB342;
+    --c-city:#3478D4;
+    --c-stay:#8A4DE8;
 
     --radius:16px;
     --radius-sm:10px;
@@ -62,29 +61,6 @@
     pointer-events:none;
   }
   #topbar > *{pointer-events:auto;}
-  #topbar-title{
-    display:flex;align-items:baseline;gap:6px;
-    padding:3px 10px;
-    align-self:flex-start;
-    background:rgba(255,253,248,.72);
-    backdrop-filter:blur(6px);
-    -webkit-backdrop-filter:blur(6px);
-    border-radius:999px;
-  }
-  #topbar h1{
-    margin:0;
-    font-size:12px;
-    font-weight:700;
-    letter-spacing:.2px;
-  }
-  #topbar .sub{
-    font-family:'Montserrat',sans-serif;
-    font-weight:600;
-    font-size:9px;
-    color:var(--ink-soft);
-    text-transform:uppercase;
-    letter-spacing:.06em;
-  }
   #topbar-controls{display:flex;flex-direction:column;gap:8px;}
 
   #search{
@@ -166,11 +142,7 @@
     box-shadow:0 2px 6px rgba(0,0,0,.3);
     display:flex;align-items:center;justify-content:center;
   }
-  .pin span{
-    font-family:'Material Symbols Outlined';
-    font-size:16px;line-height:1;color:#fff;
-    -webkit-font-smoothing:antialiased;
-  }
+  .pin svg{width:17px;height:17px;}
   .pin.food{background:var(--c-food);}
   .pin.cafe{background:var(--c-cafe);}
   .pin.nature{background:var(--c-nature);}
@@ -277,19 +249,32 @@
   /* ---------- Desktop: sidebar ---------- */
   @media (min-width:900px){
     #panel{
-      width:380px;
+      width:290px;
       flex:0 0 auto;
       border-right:1px solid var(--border);
       order:-1;
     }
-    #topbar{left:calc(380px + 12px);}
+    #topbar{left:calc(290px + 12px);}
   }
 
-  /* тёплый фильтр поверх дефолтных тайлов Яндекса — уводит палитру карты
-     от стоковых ярко-зелёных/жёлтых оттенков к нашей кремовой гамме.
+  /* Обесцвечиваем тайлы Яндекса и красим полупрозрачным синим оверлеем —
+     надёжнее даёт ровный синий тон, чем hue-rotate (тот скатывался в бирюзу).
      Таргетируем только слой тайлов (ground-pane), не метки/попапы. */
   #map [class*="ground-pane"]{
-    filter:saturate(.6) sepia(.18) brightness(1.04) contrast(.96) hue-rotate(-4deg);
+    filter:grayscale(1) brightness(1.12);
+  }
+  /* inner-panes — единственный контейнер тайлов/меток с реальными размерами
+     (у ground-pane они 0x0, тайлы внутри него позиционируются абсолютно);
+     оверлей вставляем сюда через ::after с z-index между ground-pane (501)
+     и places-pane (2004), чтобы красить только карту, а не метки. */
+  #map [class*="inner-panes"]::after{
+    content:"";
+    position:absolute;
+    inset:0;
+    z-index:1000;
+    background:rgba(52,120,212,.34);
+    mix-blend-mode:multiply;
+    pointer-events:none;
   }
 
   .cluster-dot{
@@ -310,10 +295,6 @@
     <div id="map"></div>
 
     <div id="topbar">
-      <div id="topbar-title">
-        <h1>Мои места</h1>
-        <div class="sub" id="count-label">— локаций</div>
-      </div>
       <div id="topbar-controls">
         <input id="search" type="text" placeholder="Поиск по названию, городу, тегам…" autocomplete="off" />
         <div id="chips"></div>
@@ -1308,12 +1289,37 @@
       tags:[] }
   ];
 
+  const SVG_OPEN = '<svg viewBox="-45 -45 90 90" fill="none" stroke="white" stroke-width="7" stroke-linecap="round" stroke-linejoin="round">';
   const CAT_META = {
-    food:   { label:"Рестораны", icon:"restaurant" },
-    cafe:   { label:"Кафе",      icon:"local_cafe" },
-    nature: { label:"Природа",   icon:"park" },
-    city:   { label:"Город",     icon:"location_city" },
-    stay:   { label:"Отели",     icon:"hotel" },
+    food: { label:"Рестораны", svg: SVG_OPEN + `
+      <path d="M-22-30v25c0 8 6 14 14 14s14-6 14-14v-25"/>
+      <path d="M-22-30v15M-8-30v15M6-30v15"/>
+      <path d="M-8 9v30"/>
+      <path d="M20-30v60"/>
+      <path d="M20-30c12 0 17 8 17 19v5c0 8-7 14-17 14"/>
+    </svg>` },
+    cafe: { label:"Кафе", svg: SVG_OPEN + `
+      <path d="M-31-14h55v15c0 17-10 28-28 28S-31 18-31 1Z"/>
+      <path d="M24-6h9c8 0 12 5 12 11s-4 11-12 11h-9"/>
+      <path d="M-34 39h61"/>
+      <path d="M-15-28c0-5 5-6 5-12M2-28c0-5 5-6 5-12"/>
+    </svg>` },
+    nature: { label:"Природа", svg: SVG_OPEN + `
+      <path d="M-3 37C-5 17 2-3 22-27"/>
+      <path d="M-3 37C-22 24-30 5-25-15-2-14 15-4 22 8 24 19 15 31-3 37Z"/>
+      <path d="M-1 18L-20 4M5 4L18-8"/>
+    </svg>` },
+    city: { label:"Город", svg: SVG_OPEN + `
+      <path d="M-39 35V2l19-16 19 16v33Z"/>
+      <path d="M-1 35V-8l18-24 18 24v43Z"/>
+      <path d="M-28 35V22h14v13M7 5h9M7 16h9M7 27h9"/>
+      <path d="M-39 35h75"/>
+    </svg>` },
+    stay: { label:"Отели", svg: SVG_OPEN + `
+      <path d="M-32-31v62M-32 9h64v22M-32 9h64"/>
+      <path d="M-22-9h10c7 0 11 5 11 10v8"/>
+      <path d="M-1 9h25c7 0 9 4 9 10v2H-1Z"/>
+    </svg>` },
   };
 
   /* ===================== TELEGRAM THEME ===================== */
@@ -1366,14 +1372,14 @@
   const markers = {};
   const placemarks = LOCATIONS.map(loc => {
     const IconLayout = ymaps.templateLayoutFactory.createClass(
-      `<div class="pin ${loc.cat}"><span class="material-symbols-outlined">${CAT_META[loc.cat].icon}</span></div>`
+      `<div class="pin ${loc.cat}">${CAT_META[loc.cat].svg}</div>`
     );
     const placemark = new ymaps.Placemark([loc.lat, loc.lng], {
       balloonContent: popupHtml(loc),
       hintContent: loc.name,
     }, {
       iconLayout: IconLayout,
-      iconShape: { type:'Rectangle', coordinates:[[-14,-14],[14,14]] },
+      iconShape: { type:'Rectangle', coordinates:[[-22,-22],[22,22]] },
       hideIconOnBalloonOpen:false,
       balloonPanelMaxMapArea:0,
     });
@@ -1432,7 +1438,6 @@
 
   /* ===================== LIST ===================== */
   const listEl = document.getElementById('list');
-  const countLabel = document.getElementById('count-label');
 
   function filteredLocations(){
     return LOCATIONS.filter(loc => {
@@ -1447,20 +1452,12 @@
 
   function render(){
     const items = filteredLocations();
-    countLabel.textContent = `${items.length} ${pluralLoc(items.length)}`;
     listEl.innerHTML = "";
     if(items.length === 0){
       listEl.innerHTML = `<div class="empty">Ничего не найдено</div>`;
       return;
     }
     items.forEach(loc => listEl.appendChild(renderCard(loc)));
-  }
-
-  function pluralLoc(n){
-    const mod10 = n % 10, mod100 = n % 100;
-    if(mod10===1 && mod100!==11) return "локация";
-    if([2,3,4].includes(mod10) && ![12,13,14].includes(mod100)) return "локации";
-    return "локаций";
   }
 
   function renderCard(loc){
