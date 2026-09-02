@@ -1384,12 +1384,15 @@
   const MAP_CUSTOMIZATION = [
     { tags:{ any:['address','path'] }, elements:'label', stylers:{ visibility:'off' } },
     { tags:'poi', elements:['label.icon','label.text'], stylers:{ visibility:'off' } },
-    { tags:'landscape', elements:'geometry.fill', stylers:[{ color:'#3f6fb0' }] },
-    { tags:'water', elements:'geometry.fill', stylers:[{ color:'#335f9e' }] },
-    { tags:'road', elements:'geometry.fill', stylers:[{ color:'#6f96cc' }] },
-    { tags:'building', elements:'geometry.fill', stylers:[{ color:'#5580b8' }] },
+    /* "land" — базовая заливка всей суши (без неё под "landscape" остаются
+       незакрашенные белые проплешины — там, где нет леса/парка/т.п.). */
+    { tags:'land', elements:'geometry', stylers:[{ color:'#16283c' }] },
+    { tags:'landscape', elements:'geometry', stylers:[{ color:'#1a2f47' }] },
+    { tags:'water', elements:'geometry', stylers:[{ color:'#0f1e30' }] },
+    { tags:'building', elements:'geometry', stylers:[{ color:'#22394f' }] },
+    { tags:'road', elements:'geometry', stylers:[{ color:'#f4df4e' }] },
     { tags:{ any:['country','region','locality','district'] }, elements:'label.text.fill', stylers:[{ color:'#ffffff' }] },
-    { tags:{ any:['country','region','locality','district'] }, elements:'label.text.outline', stylers:[{ color:'#2a5590', opacity:.6 }] },
+    { tags:{ any:['country','region','locality','district'] }, elements:'label.text.outline', stylers:[{ color:'#0f1e30', opacity:.7 }] },
   ];
 
   const map = new YMap(document.getElementById('map'), {
