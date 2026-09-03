@@ -1452,8 +1452,16 @@
      горизонтали. Важно: сдвиг ставим через прямой inline transform, а не
      через CSS-переменную в var() — переменная в этой сборке почему-то не
      подхватывается пересчётом transform (проверено), а прямой inline-стиль
-     работает надёжно. */
-  function clampPopupToViewport(){
+     работает надёжно.
+
+     Вторая, отдельная подстраховка (только когда передан loc, т.е. для
+     одиночного места, не для списка кластера) — по вертикали. На мобильном
+     у юзера снизу экрана периодически всплывает сторонняя штука (не наш
+     код, см. переписку) шириной с треть-половину экрана, и если пин
+     оказывается слишком низко — попап в неё утыкается. Подвинуть здесь
+     нельзя (тогда хвостик оторвётся от пина) — вместо этого по-настоящему
+     пересчитываем центр карты, чтобы пин поднялся выше. */
+  function clampPopupToViewport(loc){
     popupEl.style.transform = '';
     const rect = popupEl.getBoundingClientRect();
     const margin = 12;
@@ -1461,6 +1469,25 @@
     if(rect.left < margin) nudge = margin - rect.left;
     else if(rect.right > window.innerWidth - margin) nudge = (window.innerWidth - margin) - rect.right;
     if(nudge) popupEl.style.transform = `translate(calc(-50% + ${nudge}px), calc(-100% - 32px))`;
+
+    if(!loc) return;
+    const rect2 = popupEl.getBoundingClientRect();
+    const pinScreenY = rect2.bottom + 32;
+    const bottomLimit = window.innerHeight * 0.58;
+    const excess = pinScreenY - bottomLimit;
+    if(excess > 4){
+      const metersPerPixel = 156543.03392 * Math.cos(loc.lat * Math.PI / 180) / Math.pow(2, map.zoom);
+      const degPerPixel = metersPerPixel / 111320;
+      const c = map.center;
+      map.setLocation({ center:[c[0], c[1] - excess * degPerPixel], zoom:map.zoom, duration:0 });
+      popupMarker.update({ coordinates:[loc.lng, loc.lat] });
+      popupEl.style.transform = '';
+      const rect3 = popupEl.getBoundingClientRect();
+      let nudge2 = 0;
+      if(rect3.left < margin) nudge2 = margin - rect3.left;
+      else if(rect3.right > window.innerWidth - margin) nudge2 = (window.innerWidth - margin) - rect3.right;
+      if(nudge2) popupEl.style.transform = `translate(calc(-50% + ${nudge2}px), calc(-100% - 32px))`;
+    }
   }
   function openPopup(loc){
     popupEl.className = 'map-popup';
@@ -1472,7 +1499,7 @@
       closePopup();
     });
     popupMarker.update({ coordinates:[loc.lng, loc.lat] });
-    setTimeout(clampPopupToViewport, 60);
+    setTimeout(() => clampPopupToViewport(loc), 60);
   }
 
   /* Список мест внутри кластера — на случай, если точки стоят вплотную
