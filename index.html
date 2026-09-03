@@ -281,6 +281,12 @@
      видимого кружка, сам кружок при этом не растёт. */
   .pin-hit{padding:8px;margin:-8px;cursor:pointer;}
 
+  /* Маленькие группы (2-3 места по одному адресу — отель + музей в одном
+     здании и т.п.) показываем не безликим числом в кружке, а рядом
+     стоящими иконками своих категорий внахлёст — сразу видно, что там
+     есть, без лишнего клика в список. */
+  .cluster-group{display:flex;align-items:center;gap:6px;}
+
   /* Кастомный попап вместо стандартного балуна Яндекса (в v3 балуна нет) —
      всплывает над пином, с указателем-хвостиком и крестиком закрытия. */
   .map-popup{
@@ -350,6 +356,7 @@
     .cluster-popup .cluster-item .dot{width:10px;height:10px;}
     .cluster-popup .cluster-item .name{font-size:14px;}
     .cluster-popup .cluster-item .city{font-size:11px;}
+    .cluster-group{gap:3px;}
   }
 </style>
 
@@ -1548,6 +1555,26 @@
       return marker;
     },
     cluster: (coordinates, clusteredFeatures) => {
+      /* Маленькие группы (2-3 места по одному адресу — отель и музей в
+         одном здании и т.п.) зумом никогда не разъедутся, но их всё равно
+         не обязательно прятать за числом — показываем иконки их категорий
+         рядом, каждая кликабельна сама по себе. */
+      if(clusteredFeatures.length <= 3){
+        const wrap = document.createElement('div');
+        wrap.className = 'cluster-group pin-hit';
+        clusteredFeatures.forEach(f => {
+          const loc = f.properties;
+          const pinEl = document.createElement('div');
+          pinEl.className = 'pin';
+          pinEl.innerHTML = `<img src="${CAT_META[loc.cat].icon}" alt="">`;
+          pinEl.addEventListener('click', e => {
+            e.stopPropagation();
+            selectLocation(loc.id, { fromMap:true });
+          });
+          wrap.appendChild(pinEl);
+        });
+        return new YMapMarker({ coordinates }, wrap);
+      }
       const el = document.createElement('div');
       el.className = 'cluster-dot pin-hit';
       el.textContent = clusteredFeatures.length;
