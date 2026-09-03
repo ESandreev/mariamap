@@ -251,6 +251,10 @@
     }
     #panel[data-expanded="true"]{transform:translateY(0);}
     #panel-handle{display:flex;}
+
+    /* Логотип канала занимает правый верхний угол — на узком экране шапка
+       с поиском/чипами наезжала на него, сужаем шапку под логотип. */
+    #topbar{width:calc(100% - 24px - 72px);}
   }
 
   /* ---------- Desktop: sidebar ---------- */
@@ -322,6 +326,31 @@
   .cluster-popup .cluster-item .dot.stay{background:var(--c-stay);}
   .cluster-popup .cluster-item .name{font-size:20px;font-weight:600;}
   .cluster-popup .cluster-item .city{font-size:15px;color:var(--ink-soft);margin-top:2px;}
+
+  /* На мобильном экране увеличенные вдвое пины/кластеры/попап занимают
+     весь экран — возвращаем прежний (доувеличенный) размер именно тут,
+     на десктопе оставляем 2x как просили отдельно. Блок специально в
+     самом конце файла: правила той же специфичности, что и базовые
+     .cluster-dot/.map-popup/.cluster-popup выше, а в CSS при равной
+     специфичности побеждает то, что идёт позже по тексту. */
+  @media (max-width:899px){
+    .pin{width:28px;height:28px;border:2.5px solid var(--card);}
+    .cluster-dot{width:38px;height:38px;font-size:13px;border-width:3px;}
+    .popup-card{width:220px;border-radius:var(--radius-sm);}
+    .popup-card img{height:110px;border-radius:8px 8px 0 0;margin:-1px -1px 8px;width:calc(100% + 2px);}
+    .popup-card .body{padding:10px 12px 12px;}
+    .popup-card h3{margin:0 0 2px;font-size:16px;}
+    .popup-card .meta{font-size:11px;margin-bottom:6px;}
+    .popup-card .teaser{font-size:13px;}
+    .map-popup{transform:translate(-50%, calc(-100% - 16px));}
+    .map-popup::after{width:14px;height:14px;bottom:-7px;margin-left:-7px;}
+    .map-popup .popup-close{width:22px;height:22px;font-size:14px;top:6px;right:6px;}
+    .cluster-popup{width:220px;max-height:320px;}
+    .cluster-popup .cluster-item{padding:10px 26px 10px 12px;gap:10px;}
+    .cluster-popup .cluster-item .dot{width:10px;height:10px;}
+    .cluster-popup .cluster-item .name{font-size:14px;}
+    .cluster-popup .cluster-item .city{font-size:11px;}
+  }
 </style>
 
 <div id="app">
@@ -1531,6 +1560,9 @@
   document.getElementById('search').addEventListener('input', e => {
     query = e.target.value.trim().toLowerCase();
     render();
+    /* На мобильном список — свёрнутая нижняя шторка, при вводе в поиск
+       результаты не видны, пока её не раскрыть — раскрываем сами. */
+    if(query) expandPanel(true);
   });
 
   /* ===================== LIST ===================== */
@@ -1549,6 +1581,11 @@
 
   function render(){
     const items = filteredLocations();
+    clusterer.update({ features: items.map(loc => ({
+      type:'Feature', id:loc.id,
+      geometry:{ coordinates:[loc.lng, loc.lat] },
+      properties:loc,
+    })) });
     listEl.innerHTML = "";
     if(items.length === 0){
       listEl.innerHTML = `<div class="empty">Ничего не найдено</div>`;
