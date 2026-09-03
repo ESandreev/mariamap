@@ -152,14 +152,9 @@
     border-radius:50%;
     border:5px solid var(--card);
     box-shadow:0 2px 6px rgba(0,0,0,.3);
-    display:flex;align-items:center;justify-content:center;
+    overflow:hidden;
   }
-  .pin svg{width:34px;height:34px;}
-  .pin.food{background:var(--c-food);}
-  .pin.cafe{background:var(--c-cafe);}
-  .pin.nature{background:var(--c-nature);}
-  .pin.city{background:var(--c-city);}
-  .pin.stay{background:var(--c-stay);}
+  .pin img{width:100%;height:100%;display:block;object-fit:cover;}
 
   .popup-card{
     font-family:'Montserrat',sans-serif;width:440px;
@@ -270,11 +265,11 @@
   }
 
   .cluster-dot{
-    width:38px;height:38px;border-radius:50%;
-    background:#F40000;color:#ffffff;
+    width:76px;height:76px;border-radius:50%;
+    background:var(--ink);color:var(--paper);
     display:flex;align-items:center;justify-content:center;
-    font-family:'Montserrat',sans-serif;font-size:13px;font-weight:500;
-    border:3px solid #ffffff;box-shadow:0 2px 8px rgba(42,34,26,.3);
+    font-family:'Montserrat',sans-serif;font-size:26px;font-weight:500;
+    border:6px solid var(--card);box-shadow:0 2px 8px rgba(42,34,26,.3);
     cursor:pointer;
   }
 
@@ -306,6 +301,27 @@
     display:flex;align-items:center;justify-content:center;
     font-size:28px;line-height:1;cursor:pointer;z-index:1;
   }
+
+  /* Список мест внутри кластера (когда точки стоят вплотную и зумом не
+     разъезжаются) — карточка со скроллом вместо одиночного попапа. */
+  .cluster-popup{
+    font-family:'Montserrat',sans-serif;width:440px;max-height:420px;overflow-y:auto;
+    background:var(--card);border-radius:20px;box-shadow:var(--shadow);
+  }
+  .cluster-popup .cluster-item{
+    display:flex;align-items:center;gap:14px;
+    padding:16px 44px 16px 20px;cursor:pointer;
+    border-bottom:1px solid var(--border);
+  }
+  .cluster-popup .cluster-item:last-child{border-bottom:none;}
+  .cluster-popup .cluster-item .dot{width:16px;height:16px;border-radius:50%;flex:0 0 auto;}
+  .cluster-popup .cluster-item .dot.food{background:var(--c-food);}
+  .cluster-popup .cluster-item .dot.cafe{background:var(--c-cafe);}
+  .cluster-popup .cluster-item .dot.nature{background:var(--c-nature);}
+  .cluster-popup .cluster-item .dot.city{background:var(--c-city);}
+  .cluster-popup .cluster-item .dot.stay{background:var(--c-stay);}
+  .cluster-popup .cluster-item .name{font-size:20px;font-weight:600;}
+  .cluster-popup .cluster-item .city{font-size:15px;color:var(--ink-soft);margin-top:2px;}
 </style>
 
 <div id="app">
@@ -1312,37 +1328,12 @@
       tags:[] }
   ];
 
-  const SVG_OPEN = '<svg viewBox="-45 -45 90 90" fill="none" stroke="white" stroke-width="7" stroke-linecap="round" stroke-linejoin="round">';
   const CAT_META = {
-    food: { label:"Рестораны", svg: SVG_OPEN + `
-      <path d="M-22-30v25c0 8 6 14 14 14s14-6 14-14v-25"/>
-      <path d="M-22-30v15M-8-30v15M6-30v15"/>
-      <path d="M-8 9v30"/>
-      <path d="M20-30v60"/>
-      <path d="M20-30c12 0 17 8 17 19v5c0 8-7 14-17 14"/>
-    </svg>` },
-    cafe: { label:"Кафе", svg: SVG_OPEN + `
-      <path d="M-31-14h55v15c0 17-10 28-28 28S-31 18-31 1Z"/>
-      <path d="M24-6h9c8 0 12 5 12 11s-4 11-12 11h-9"/>
-      <path d="M-34 39h61"/>
-      <path d="M-15-28c0-5 5-6 5-12M2-28c0-5 5-6 5-12"/>
-    </svg>` },
-    nature: { label:"Природа", svg: SVG_OPEN + `
-      <path d="M-3 37C-5 17 2-3 22-27"/>
-      <path d="M-3 37C-22 24-30 5-25-15-2-14 15-4 22 8 24 19 15 31-3 37Z"/>
-      <path d="M-1 18L-20 4M5 4L18-8"/>
-    </svg>` },
-    city: { label:"Город", svg: SVG_OPEN + `
-      <path d="M-39 35V2l19-16 19 16v33Z"/>
-      <path d="M-1 35V-8l18-24 18 24v43Z"/>
-      <path d="M-28 35V22h14v13M7 5h9M7 16h9M7 27h9"/>
-      <path d="M-39 35h75"/>
-    </svg>` },
-    stay: { label:"Отели", svg: SVG_OPEN + `
-      <path d="M-32-31v62M-32 9h64v22M-32 9h64"/>
-      <path d="M-22-9h10c7 0 11 5 11 10v8"/>
-      <path d="M-1 9h25c7 0 9 4 9 10v2H-1Z"/>
-    </svg>` },
+    food:   { label:"Рестораны", icon:"images/icons/food.png" },
+    cafe:   { label:"Кафе",      icon:"images/icons/cafe.png" },
+    nature: { label:"Природа",   icon:"images/icons/nature.png" },
+    city:   { label:"Город",     icon:"images/icons/city.png" },
+    stay:   { label:"Отели",     icon:"images/icons/stay.png" },
   };
 
   /* ===================== TELEGRAM THEME ===================== */
@@ -1409,24 +1400,53 @@
   map.addChild(new YMapControls({ position:'right' }).addChild(new YMapZoomControl({})));
 
   /* Кастомный попап вместо стандартного балуна Яндекса (в v3 балуна нет) —
-     единственный YMapMarker, который переставляется на нужные координаты. */
-  let popupMarker = null;
+     ОДИН персистентный YMapMarker, который весь код рождения живёт на карте.
+     Важно: убирать его через map.removeChild() НЕЛЬЗЯ — в этой сборке v3
+     это почему-то рвёт рендер кластеров/пинов (все пропадают с карты и не
+     возвращаются). Поэтому просто переставляем координаты через .update()
+     и прячем/показываем содержимое через CSS. */
+  const popupEl = document.createElement('div');
+  const popupMarker = new YMapMarker({ coordinates:[0,0] }, popupEl);
+  map.addChild(popupMarker);
+
   function closePopup(){
-    if(popupMarker){ map.removeChild(popupMarker); popupMarker = null; }
+    popupEl.innerHTML = '';
+    popupEl.className = '';
   }
   function openPopup(loc){
-    closePopup();
-    const el = document.createElement('div');
-    el.className = 'map-popup';
-    el.innerHTML = `<div class="popup-close">&times;</div>` + popupHtml(loc);
-    el.querySelector('.popup-close').addEventListener('click', e => {
+    popupEl.className = 'map-popup';
+    popupEl.innerHTML = `<div class="popup-close">&times;</div>` + popupHtml(loc);
+    popupEl.querySelector('.popup-close').addEventListener('click', e => {
       e.stopPropagation();
       activeId = null;
       [...listEl.children].forEach(c => { if(c.dataset.id) c.dataset.active = false; });
       closePopup();
     });
-    popupMarker = new YMapMarker({ coordinates:[loc.lng, loc.lat] }, el);
-    map.addChild(popupMarker);
+    popupMarker.update({ coordinates:[loc.lng, loc.lat] });
+  }
+
+  /* Список мест внутри кластера — на случай, если точки стоят вплотную
+     (тот же дом/адрес) и зумом никогда не разъедутся: клик по кластеру
+     должен всегда куда-то вести, а не упираться в потолок зума молча. */
+  function openClusterPopup(coordinates, locs){
+    popupEl.className = 'map-popup';
+    const items = locs.map(loc => `
+      <div class="cluster-item" data-id="${loc.id}">
+        <span class="dot ${loc.cat}"></span>
+        <div>
+          <div class="name">${escapeHtml(loc.name)}</div>
+          <div class="city">${escapeHtml(loc.city)} · ${CAT_META[loc.cat].label}</div>
+        </div>
+      </div>`).join('');
+    popupEl.innerHTML = `<div class="popup-close">&times;</div><div class="cluster-popup">${items}</div>`;
+    popupEl.querySelector('.popup-close').addEventListener('click', e => {
+      e.stopPropagation();
+      closePopup();
+    });
+    popupEl.querySelectorAll('.cluster-item').forEach(row => {
+      row.addEventListener('click', () => selectLocation(Number(row.dataset.id), { fromMap:true }));
+    });
+    popupMarker.update({ coordinates });
   }
 
   const markers = {};
@@ -1443,7 +1463,7 @@
       const loc = feature.properties;
       const wrap = document.createElement('div');
       wrap.className = 'pin-hit';
-      wrap.innerHTML = `<div class="pin ${loc.cat}">${CAT_META[loc.cat].svg}</div>`;
+      wrap.innerHTML = `<div class="pin"><img src="${CAT_META[loc.cat].icon}" alt=""></div>`;
       wrap.addEventListener('click', () => selectLocation(loc.id, { fromMap:true }));
       const marker = new YMapMarker({ coordinates: feature.geometry.coordinates }, wrap);
       markers[loc.id] = marker;
@@ -1454,7 +1474,12 @@
       el.className = 'cluster-dot pin-hit';
       el.textContent = clusteredFeatures.length;
       el.addEventListener('click', () => {
-        map.setLocation({ center:coordinates, zoom:Math.min(map.zoom + 2, 21), duration:400, easing:'ease-in-out' });
+        const zoomedIn = map.zoom >= 20 || clusteredFeatures.length <= 6;
+        if(zoomedIn){
+          openClusterPopup(coordinates, clusteredFeatures.map(f => f.properties));
+        } else {
+          map.setLocation({ center:coordinates, zoom:Math.min(map.zoom + 2, 21), duration:0 });
+        }
       });
       return new YMapMarker({ coordinates }, el);
     },
@@ -1564,12 +1589,12 @@
     });
     if(loc){
       suppressAutoCollapse = true;
-      const zoom = Math.max(map.zoom, 16);
+      const zoom = Math.max(map.zoom, 18);
       /* Смещаем центр карты чуть южнее пина, чтобы сам пин оказался в нижней
          половине экрана — иначе всплывающая карточка (растёт вверх от пина)
          может залезть под плавающую шапку с поиском. */
       const latOffset = 0.28 * Math.pow(0.508, zoom - 10);
-      map.setLocation({ center:[loc.lng, loc.lat + latOffset], zoom, duration:400, easing:'ease-in-out' });
+      map.setLocation({ center:[loc.lng, loc.lat + latOffset], zoom, duration:0 });
       setTimeout(() => { suppressAutoCollapse = false; }, 500);
       openPopup(loc);
       if(!fromMap){
@@ -1648,12 +1673,25 @@
   const minLng = Math.min(...boundsLngs), maxLng = Math.max(...boundsLngs);
   const latPad = Math.max((maxLat - minLat) * 0.15, 0.3);
   const lngPad = Math.max((maxLng - minLng) * 0.15, 0.3);
-  setTimeout(() => {
-    map.setLocation({
-      bounds: [[minLng - lngPad, minLat - latPad], [maxLng + lngPad, maxLat + latPad]],
-      duration:0,
-    });
-  }, 0);
+
+  /* map.setLocation({bounds}) в этой сборке v3 надёжно даёт zoom:0/1
+     (не считает по контейнеру), а после такого "битого" зума следом
+     ломаются даже обычные анимированные setLocation. Поэтому зум не
+     доверяем автоматике, а считаем сами по охвату точек и ставим сразу
+     явным {center, zoom} без анимации. */
+  function zoomForSpan(lngSpan, latSpan){
+    const W = 1000, H = 600;
+    const zLng = Math.log2(360 * W / (256 * Math.max(lngSpan, 0.0001)));
+    const zLat = Math.log2(180 * H / (256 * Math.max(latSpan, 0.0001)));
+    return Math.max(3, Math.min(11, Math.floor(Math.min(zLng, zLat))));
+  }
+  const fitLngSpan = (maxLng + lngPad) - (minLng - lngPad);
+  const fitLatSpan = (maxLat + latPad) - (minLat - latPad);
+  map.setLocation({
+    center: [(minLng + maxLng) / 2, (minLat + maxLat) / 2],
+    zoom: zoomForSpan(fitLngSpan, fitLatSpan),
+    duration:0,
+  });
 
   })(); // v3 map init
 </script>
