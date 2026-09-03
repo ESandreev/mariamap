@@ -75,6 +75,29 @@
     pointer-events:none;
   }
 
+  #zoom-ctrl{
+    position:absolute;
+    right:12px;
+    top:50%;
+    transform:translateY(-50%);
+    z-index:10;
+    display:flex;
+    flex-direction:column;
+    background:var(--card);
+    border-radius:12px;
+    box-shadow:var(--shadow);
+    overflow:hidden;
+  }
+  #zoom-ctrl button{
+    width:40px;height:40px;
+    border:none;background:none;
+    font-size:20px;font-family:'Montserrat',sans-serif;font-weight:600;
+    color:var(--ink);
+    cursor:pointer;
+    display:flex;align-items:center;justify-content:center;
+  }
+  #zoom-ctrl button:first-child{border-bottom:1px solid var(--border);}
+
   #search{
     width:100%;
     padding:9px 14px;
@@ -360,6 +383,10 @@
       <div id="list"></div>
     </div>
     <div id="map"></div>
+    <div id="zoom-ctrl">
+      <button id="zoom-in" type="button" aria-label="Приблизить">+</button>
+      <button id="zoom-out" type="button" aria-label="Отдалить">−</button>
+    </div>
 
     <div id="topbar">
       <div id="topbar-controls">
@@ -1387,11 +1414,9 @@
   await ymaps3.ready;
   ymaps3.import.registerCdn('https://cdn.jsdelivr.net/npm/{package}', [
     '@yandex/ymaps3-clusterer@0.0',
-    '@yandex/ymaps3-default-ui-theme@0.0',
   ]);
-  const { YMap, YMapDefaultSchemeLayer, YMapDefaultFeaturesLayer, YMapMarker, YMapControls, YMapListener } = ymaps3;
+  const { YMap, YMapDefaultSchemeLayer, YMapDefaultFeaturesLayer, YMapMarker, YMapListener } = ymaps3;
   const { YMapClusterer, clusterByGrid } = await ymaps3.import('@yandex/ymaps3-clusterer');
-  const { YMapZoomControl } = await ymaps3.import('@yandex/ymaps3-default-ui-theme');
 
   /* ===================== STATE ===================== */
   let activeCat = null;
@@ -1423,10 +1448,25 @@
 
   const map = new YMap(document.getElementById('map'), {
     location:{ center:[37.64, 55.76], zoom:5 },
+    /* Без 'dblClick' — иначе двойной тап по карте (в т.ч. случайный, при
+       двух быстрых тапах по +/- контролу) зумит карту сам по себе. */
+    behaviors:['drag','pinchZoom','scrollZoom','multiTouch'],
   });
   map.addChild(new YMapDefaultSchemeLayer({ customization: MAP_CUSTOMIZATION }));
   map.addChild(new YMapDefaultFeaturesLayer());
-  map.addChild(new YMapControls({ position:'right' }).addChild(new YMapZoomControl({})));
+
+  /* Свой zoom-контрол вместо встроенного YMapZoomControl. Встроенный зумит
+     анимированным setLocation() — та же грабля #1 (см. хендовер): первый
+     клик доезжает лишь частично, все следующие клики становятся no-op
+     навсегда. Тут — тот же безопасный паттерн duration:0, что и везде в
+     проекте. */
+  const ZOOM_MIN = 3, ZOOM_MAX = 21;
+  document.getElementById('zoom-in').addEventListener('click', () => {
+    map.setLocation({ center:map.center, zoom:Math.min(Math.round(map.zoom) + 1, ZOOM_MAX), duration:0 });
+  });
+  document.getElementById('zoom-out').addEventListener('click', () => {
+    map.setLocation({ center:map.center, zoom:Math.max(Math.round(map.zoom) - 1, ZOOM_MIN), duration:0 });
+  });
 
   /* Кастомный попап вместо стандартного балуна Яндекса (в v3 балуна нет) —
      ОДИН персистентный YMapMarker, который весь код рождения живёт на карте.
