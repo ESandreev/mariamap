@@ -75,29 +75,6 @@
     pointer-events:none;
   }
 
-  #zoom-ctrl{
-    position:absolute;
-    right:12px;
-    top:50%;
-    transform:translateY(-50%);
-    z-index:10;
-    display:flex;
-    flex-direction:column;
-    background:var(--card);
-    border-radius:12px;
-    box-shadow:var(--shadow);
-    overflow:hidden;
-  }
-  #zoom-ctrl button{
-    width:40px;height:40px;
-    border:none;background:none;
-    font-size:20px;font-family:'Montserrat',sans-serif;font-weight:600;
-    color:var(--ink);
-    cursor:pointer;
-    display:flex;align-items:center;justify-content:center;
-  }
-  #zoom-ctrl button:first-child{border-bottom:1px solid var(--border);}
-
   #search{
     width:100%;
     padding:9px 14px;
@@ -383,10 +360,6 @@
       <div id="list"></div>
     </div>
     <div id="map"></div>
-    <div id="zoom-ctrl">
-      <button id="zoom-in" type="button" aria-label="Приблизить">+</button>
-      <button id="zoom-out" type="button" aria-label="Отдалить">−</button>
-    </div>
 
     <div id="topbar">
       <div id="topbar-controls">
@@ -1448,25 +1421,13 @@
 
   const map = new YMap(document.getElementById('map'), {
     location:{ center:[37.64, 55.76], zoom:5 },
-    /* Без 'dblClick' — иначе двойной тап по карте (в т.ч. случайный, при
-       двух быстрых тапах по +/- контролу) зумит карту сам по себе. */
+    /* Без 'dblClick' — иначе двойной тап по карте зумит её сам по себе.
+       Зум остаётся через pinch (мобильный) и колесо мыши (десктоп) —
+       отдельного +/- контрола на карте больше нет. */
     behaviors:['drag','pinchZoom','scrollZoom','multiTouch'],
   });
   map.addChild(new YMapDefaultSchemeLayer({ customization: MAP_CUSTOMIZATION }));
   map.addChild(new YMapDefaultFeaturesLayer());
-
-  /* Свой zoom-контрол вместо встроенного YMapZoomControl. Встроенный зумит
-     анимированным setLocation() — та же грабля #1 (см. хендовер): первый
-     клик доезжает лишь частично, все следующие клики становятся no-op
-     навсегда. Тут — тот же безопасный паттерн duration:0, что и везде в
-     проекте. */
-  const ZOOM_MIN = 3, ZOOM_MAX = 21;
-  document.getElementById('zoom-in').addEventListener('click', () => {
-    map.setLocation({ center:map.center, zoom:Math.min(Math.round(map.zoom) + 1, ZOOM_MAX), duration:0 });
-  });
-  document.getElementById('zoom-out').addEventListener('click', () => {
-    map.setLocation({ center:map.center, zoom:Math.max(Math.round(map.zoom) - 1, ZOOM_MIN), duration:0 });
-  });
 
   /* Кастомный попап вместо стандартного балуна Яндекса (в v3 балуна нет) —
      ОДИН персистентный YMapMarker, который весь код рождения живёт на карте.
@@ -1481,6 +1442,25 @@
   function closePopup(){
     popupEl.innerHTML = '';
     popupEl.className = '';
+    popupEl.style.transform = '';
+  }
+  /* Пин может оказаться у самого края экрана (если центрирование карты в
+     selectLocation() не успело/не сработало — тот же класс глюков v3, что
+     и остальные баги в этом файле) — тогда попап, который всегда шириной
+     440/220px и растёт от центра пина, обрезается краем экрана. Подстраховка:
+     после отрисовки меряем реальное положение и подвигаем попап по
+     горизонтали. Важно: сдвиг ставим через прямой inline transform, а не
+     через CSS-переменную в var() — переменная в этой сборке почему-то не
+     подхватывается пересчётом transform (проверено), а прямой inline-стиль
+     работает надёжно. */
+  function clampPopupToViewport(){
+    popupEl.style.transform = '';
+    const rect = popupEl.getBoundingClientRect();
+    const margin = 12;
+    let nudge = 0;
+    if(rect.left < margin) nudge = margin - rect.left;
+    else if(rect.right > window.innerWidth - margin) nudge = (window.innerWidth - margin) - rect.right;
+    if(nudge) popupEl.style.transform = `translate(calc(-50% + ${nudge}px), calc(-100% - 32px))`;
   }
   function openPopup(loc){
     popupEl.className = 'map-popup';
@@ -1492,6 +1472,7 @@
       closePopup();
     });
     popupMarker.update({ coordinates:[loc.lng, loc.lat] });
+    setTimeout(clampPopupToViewport, 60);
   }
 
   /* Список мест внутри кластера — на случай, если точки стоят вплотную
@@ -1516,6 +1497,7 @@
       row.addEventListener('click', () => selectLocation(Number(row.dataset.id), { fromMap:true }));
     });
     popupMarker.update({ coordinates });
+    setTimeout(clampPopupToViewport, 60);
   }
 
   const markers = {};
