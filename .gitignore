@@ -1,5 +1,6 @@
 Telegram Desktop/
 .DS_Store
+.env
 data/posts.json
 data/review_candidates.txt
 data/geocode_log.txt
@@ -10,3 +11,6 @@ data/extra_locations_geocoded.json
 __pycache__/
 data/geocode_extra_log.txt
 data/apply_address_fixes_log.txt
+data/photo_batches/
+data/name_match_candidates.json
+data/fresh_candidates.json
